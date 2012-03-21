@@ -14,5 +14,8 @@
                   inets,
                   ssl
                  ]},
+  {agner, [
+           {requires, ["lager"]}
+         ]},
   {env, []}
  ]}.
