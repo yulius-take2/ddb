@@ -9,11 +9,11 @@ Authenticating
 
 Creating a table with a hash key
 
-    ddb:create(<<"foo">>, ddb:key_type(<<"hashkey">>, 'string'), 10, 10).
+    ddb:create_table(<<"foo">>, ddb:key_type(<<"hashkey">>, 'string'), 10, 10).
 
 Creating a table with hash and range keys
 
-    ddb:create(<<"bar">>, ddb:key_type(<<"hashkey">>, 'string', <<"rangekey">>, 'number'), 10, 10).
+    ddb:create_table(<<"bar">>, ddb:key_type(<<"hashkey">>, 'string', <<"rangekey">>, 'number'), 10, 10).
 
 Adding a record to a table with a hash key
 

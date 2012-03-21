@@ -26,9 +26,11 @@
 -export([credentials/3, tables/0,
          key_type/2, key_type/4,
          key_value/2, key_value/4,
-         create/4, describe/1, delete/1,
-         get/2, put/2, update/3, update/4,
+         create_table/4, describe_table/1, remove_table/1,
+         get/2, put/2, update/3, update/4, 
+         delete/2, delete/3, 
          cond_update/4, cond_update/5,
+         cond_delete/3, cond_delete/4,
          now/0, find/3, find/4]).
 
 -define(DDB_DOMAIN, "dynamodb.us-east-1.amazonaws.com").
@@ -51,14 +53,16 @@
 
 %%% Endpoint targets
 
--define(TG_CREATE_TABLE, "DynamoDBv20110924.CreateTable").
--define(TG_LIST_TABLES, "DynamoDBv20110924.ListTables").
--define(TG_DESCRIBE_TABLE, "DynamoDBv20110924.DescribeTable").
--define(TG_DELETE_TABLE, "DynamoDBv20110924.DeleteTable").
--define(TG_PUT_ITEM, "DynamoDBv20110924.PutItem").
--define(TG_GET_ITEM, "DynamoDBv20110924.GetItem").
--define(TG_UPDATE_ITEM, "DynamoDBv20110924.UpdateItem").
--define(TG_QUERY, "DynamoDBv20110924.Query").
+-define(TG_VERSION, "DynamoDB_20111205.").
+-define(TG_CREATE_TABLE, ?TG_VERSION ++ "CreateTable").
+-define(TG_LIST_TABLES, ?TG_VERSION ++ "ListTables").
+-define(TG_DESCRIBE_TABLE, ?TG_VERSION ++ "DescribeTable").
+-define(TG_DELETE_TABLE, ?TG_VERSION ++ "DeleteTable").
+-define(TG_PUT_ITEM, ?TG_VERSION ++ "PutItem").
+-define(TG_GET_ITEM, ?TG_VERSION ++ "GetItem").
+-define(TG_UPDATE_ITEM, ?TG_VERSION ++ "UpdateItem").
+-define(TG_DELETE_ITEM, ?TG_VERSION ++ "DeleteItem"). 
+-define(TG_QUERY, ?TG_VERSION ++ "Query").
 
 -define(HTTP_OPTIONS, []).
 
@@ -122,9 +126,9 @@ key_type(HashKey, HashKeyType, RangeKey, RangeKeyType)
 
 %%% Create table. Use key_type/2 or key_type/4 as key.
 
--spec create(tablename(), key_json(), pos_integer(), pos_integer()) -> json_reply().
+-spec create_table(tablename(), key_json(), pos_integer(), pos_integer()) -> json_reply().
  
-create(Name, Keys, ReadsPerSec, WritesPerSec) 
+create_table(Name, Keys, ReadsPerSec, WritesPerSec) 
   when is_binary(Name),
        is_list(Keys),
        is_integer(ReadsPerSec),
@@ -146,18 +150,18 @@ tables() ->
 
 %%% Describe table.
 
--spec describe(tablename()) -> json_reply().
+-spec describe_table(tablename()) -> json_reply().
 
-describe(Name) 
+describe_table(Name) 
   when is_binary(Name) ->
     JSON = [{<<"TableName">>, Name}],
     request(?TG_DESCRIBE_TABLE, JSON).
 
 %%% Delete table.
 
--spec delete(tablename()) -> json_reply().
+-spec remove_table(tablename()) -> json_reply().
 
-delete(Name) 
+remove_table(Name) 
   when is_binary(Name) ->
     JSON = [{<<"TableName">>, Name}],
     request(?TG_DELETE_TABLE, JSON).
@@ -234,6 +238,43 @@ cond_update(Name, Keys, Attributes, Condition, Returns)
         ++ [{<<"AttributeUpdates">>, format_update_attrs(Attributes)}]
         ++ format_update_cond(Condition),
     request(?TG_UPDATE_ITEM, JSON).    
+
+%%% Delete existing item.
+
+-spec delete(tablename(), key_json()) -> json_reply().
+
+delete(Name, Keys) ->
+    delete(Name, Keys, 'none').
+
+-spec delete(tablename(), key_json(), returns()) -> json_reply().
+
+delete(Name, Keys, Returns)
+  when is_binary(Name),
+       is_list(Keys),
+       is_atom(Returns) ->
+    JSON = [{<<"TableName">>, Name},
+            {<<"ReturnValues">>, returns(Returns)}] 
+        ++ Keys,
+    request(?TG_DELETE_ITEM, JSON).
+    
+%%% Conditionally delete existing item.
+
+-spec cond_delete(tablename(), key_json(), update_cond()) -> json_reply().
+
+cond_delete(Name, Keys, Condition) ->
+    cond_update(Name, Keys, Condition, 'none').
+
+-spec cond_delete(tablename(), key_json(), update_cond(), returns()) -> json_reply().
+
+cond_delete(Name, Keys, Condition, Returns)
+  when is_binary(Name),
+       is_list(Keys),
+       is_atom(Returns) ->
+    JSON = [{<<"TableName">>, Name},
+            {<<"ReturnValues">>, returns(Returns)}] 
+        ++ Keys 
+        ++ format_update_cond(Condition),
+    request(?TG_DELETE_ITEM, JSON).    
     
 %%% Fetch all item attributes from table.
 
