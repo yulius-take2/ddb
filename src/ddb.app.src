@@ -11,11 +11,8 @@
                   stdlib,
                   lager,
                   crypto,
-                  inets,
-                  ssl
+                  ssl,
+                  ibrowse
                  ]},
-  {agner, [
-           {requires, ["lager"]}
-         ]},
   {env, []}
  ]}.

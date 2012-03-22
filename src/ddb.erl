@@ -338,8 +338,8 @@ update_action('delete') -> <<"DELETE">>.
 request(Target, JSON) ->
     Body = jsx:to_json(JSON),
     Headers = headers(Target, Body),
-    Opts = [{'body_format', 'binary'}],
-    F = fun() -> httpc:request('post', {?DDB_ENDPOINT, Headers, ?CONTENT_TYPE, Body}, [], Opts) end,
+    Opts = [{'response_format', 'binary'}],
+    F = fun() -> ibrowse:request(?DDB_ENDPOINT, [{'Content-type', ?CONTENT_TYPE} | Headers], 'post', Body, Opts) end,
     ddb_aws:retry(F, ?MAX_RETRIES, fun jsx:to_term/1).
 
 -spec headers(string(), binary()) -> proplists:proplist().

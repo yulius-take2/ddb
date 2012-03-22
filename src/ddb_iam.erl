@@ -25,6 +25,8 @@
 
 -export([credentials/2, token/1]).
 
+-include_lib("ibrowse/include/ibrowse.hrl").
+
 -define(IAM_ENDPOINT, "https://sts.amazonaws.com/").
 -define(IAM_AWS_VERSION, "2011-06-15").
 -define(IAM_HEADER_AUTHORIZATION, "Authorization").
@@ -86,12 +88,12 @@ request(Action, Endpoint, Duration) ->
             {"Timestamp", ddb_aws:timestamp()},
             {"Version", ?IAM_AWS_VERSION}],
     CanonicalString = mochiweb_util:urlencode(lists:sort(Args)),
-    {Host, _Port, Path, _SSL} = lhttpc_lib:parse_url(Endpoint),
+    #url{host=Host, path=Path} = ibrowse:parse_url(Endpoint),
     S = ["POST", $\n, Host, $\n, Path, $\n, CanonicalString],
     Signature = base64:encode_to_string(crypto:sha_mac(SecretAccessKey, S)),
     Args1 = [{"Signature", Signature}|Args],
     Body = iolist_to_binary(mochiweb_util:urlencode(lists:sort(Args1))), 
-    F = fun() -> httpc:request('post', {Endpoint, [], ?MIME_TYPE, Body}, [], []) end,
+    F = fun() -> ibrowse:send_req(Endpoint, [{'Content-type', ?MIME_TYPE}], 'post', Body, []) end,
     H = fun ddb_xml:parse/1,
     ddb_aws:retry(F, ?IAM_MAX_RETRIES, H).
 
