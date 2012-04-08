@@ -67,7 +67,7 @@
 -define(HTTP_OPTIONS, []).
 
 -type tablename() :: binary().
--type type() :: 'number' | 'string' | 'number_set' | 'string_set'.
+-type type() :: 'number' | 'string' | ['number'] | ['string'].
 -type condition() :: 'between' | 'equal'. % TBD implement others
 -type key_value() :: {binary(), type()}.
 -type find_cond() :: {condition(), type(), [_]}.
@@ -135,8 +135,8 @@ create_table(Name, Keys, ReadsPerSec, WritesPerSec)
        is_integer(WritesPerSec) ->
     JSON = [{<<"TableName">>, Name},
             {<<"KeySchema">>, Keys},
-            {<<"ProvisionedThroughput">>, [{<<"ReadsPerSecond">>, ReadsPerSec},
-                                           {<<"WritesPerSecond">>, WritesPerSec}]}],
+            {<<"ProvisionedThroughput">>, [{<<"ReadCapacityUnits">>, ReadsPerSec},
+                                           {<<"WriteCapacityUnits">>, WritesPerSec}]}],
     request(?TG_CREATE_TABLE, JSON).
 
 %%% Fetch list of created tabled.
@@ -357,8 +357,8 @@ format_update_cond({'exists', Name, Value, Type}) ->
 
 type('string') -> <<"S">>;
 type('number') -> <<"N">>;
-type('string_set') -> <<"SS">>;
-type('number_set') -> <<"NN">>.
+type(['string']) -> <<"SS">>;
+type(['number']) -> <<"NN">>.
 
 -spec returns(returns()) -> binary().
 
@@ -378,6 +378,7 @@ update_action('delete') -> <<"DELETE">>.
 
 request(Target, JSON) ->
     Body = jsx:to_json(JSON),
+    lager:debug("request: json = ~p", [Body]),
     Headers = headers(Target, Body),
     Opts = [{'response_format', 'binary'}],
     F = fun() -> ibrowse:request(?DDB_ENDPOINT, [{'Content-type', ?CONTENT_TYPE} | Headers], 'post', Body, Opts) end,
