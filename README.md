@@ -2,6 +2,9 @@
 
 Authenticating
 
+    inets:start().
+    ssl:start().
+    lager:start().
     ddb_iam:credentials("access key", "secret").
     {'ok', Key, Secret, Token} = ddb_iam:token(129600).
     ddb:credentials(Key, Secret, Token).
