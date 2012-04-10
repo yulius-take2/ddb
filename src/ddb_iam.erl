@@ -88,7 +88,7 @@ request(Action, Endpoint, Duration) ->
             {"Timestamp", ddb_aws:timestamp()},
             {"Version", ?IAM_AWS_VERSION}],
     CanonicalString = mochiweb_util:urlencode(lists:sort(Args)),
-    #url{host=Host, path=Path} = ibrowse:parse_url(Endpoint),
+    #url{host=Host, path=Path} = ibrowse_lib:parse_url(Endpoint),
     S = ["POST", $\n, Host, $\n, Path, $\n, CanonicalString],
     Signature = base64:encode_to_string(crypto:sha_mac(SecretAccessKey, S)),
     Args1 = [{"Signature", Signature}|Args],
