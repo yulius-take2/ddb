@@ -48,12 +48,12 @@ retry(F, Max, N, H)
        is_function(H) ->
     backoff(N),
     case F() of
-        {'ok', {{_, 200, _}, _, Body}} ->    
+        {ok, "200", _, Body} ->
             {'ok', H(Body)};
-        {'ok', {{_, Code, _}, _, Body}} when Code >= 400 andalso Code =< 500 ->
+        {ok, Code, _, Body} when Code >= "400" andalso Code =< "500" ->
             ok = lager:error("Got client error (~s) ~p, aborting...", [Code, Body]),
             {'error', H(Body)};
-        {'ok', {{_, Code, _}, _, Body}} ->
+        {'ok', Code, _, Body} ->
             ok = lager:warning("Unexpected response (~s) ~p, retrying...", [Code, Body]),
             retry(F, Max, N + 1, H);
         {'error', Error} ->
