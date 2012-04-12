@@ -378,7 +378,6 @@ update_action('delete') -> <<"DELETE">>.
 
 request(Target, JSON) ->
     Body = jsx:term_to_json(JSON),
-    lager:debug("request: json = ~p", [Body]),
     Headers = headers(Target, Body),
     Opts = [{'response_format', 'binary'}],
     F = fun() -> ibrowse:send_req(?DDB_ENDPOINT, [{'Content-type', ?CONTENT_TYPE} | Headers], 'post', Body, Opts) end,
