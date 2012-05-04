@@ -26,6 +26,7 @@
 -export([credentials/2, token/1]).
 
 -include_lib("ibrowse/include/ibrowse.hrl").
+-include_lib("xmerl/include/xmerl.hrl").
 
 -define(IAM_ENDPOINT, "https://sts.amazonaws.com/").
 -define(IAM_AWS_VERSION, "2011-06-15").
@@ -46,14 +47,15 @@ credentials(AccessKeyId, SecretAccessKey) ->
     'ok' = application:set_env('iam', 'accesskeyid', AccessKeyId),
     'ok' = application:set_env('iam', 'secretaccesskey', SecretAccessKey).
 
--spec credentials() -> {string(), string()}.
+-spec credentials() -> {'ok', string(), string()}.
 
 credentials() ->
     {'ok', AccessKeyId} = application:get_env('iam', 'accesskeyid'),
     {'ok', SecretAccessKey} = application:get_env('iam', 'secretaccesskey'),
     {'ok', AccessKeyId, SecretAccessKey}.
 
--spec token(pos_integer()) -> {'ok', string(), string(), string()} | 
+-spec token(pos_integer()) -> {'ok', string(), string(), string()} |
+			      {'error', 'maximum_retries_reached'} |
                               {'error', string(), string()}.
 
 token(Duration) 
@@ -75,8 +77,9 @@ token(Duration)
             {'error', Code, Message}
     end.
 
--spec request(string(), string(), non_neg_integer()) -> {'ok', string()} | 
-                                                        {'error', string()}.
+-spec request(string(), string(), non_neg_integer()) -> {'ok', #xmlElement{}} | 
+							{'error', 'maximum_retries_reached'} |
+                                                        {'error', #xmlElement{}}.
 
 request(Action, Endpoint, Duration) ->
     {'ok', AccessKeyId, SecretAccessKey} = credentials(),

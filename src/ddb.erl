@@ -262,7 +262,7 @@ delete(Name, Keys, Returns)
 -spec cond_delete(tablename(), key_json(), update_cond()) -> json_reply().
 
 cond_delete(Name, Keys, Condition) ->
-    cond_update(Name, Keys, Condition, 'none').
+    cond_delete(Name, Keys, Condition, 'none').
 
 -spec cond_delete(tablename(), key_json(), update_cond(), returns()) -> json_reply().
 
