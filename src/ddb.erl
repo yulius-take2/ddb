@@ -27,7 +27,7 @@
          key_type/2, key_type/4,
          key_value/2, key_value/4,
          create_table/4, describe_table/1, remove_table/1,
-         get/2, put/2, update/3, update/4, 
+         get/2, get/3, put/2, update/3, update/4, 
          delete/2, delete/3, 
 	 cond_put/3,
          cond_update/4, cond_update/5,
@@ -301,6 +301,18 @@ get(Name, Keys)
   when is_binary(Name),
        is_list(Keys) ->
     JSON = [{<<"TableName">>, Name}] ++ Keys,
+    request(?TG_GET_ITEM, JSON).
+
+%%% get with additional parameters
+
+-spec get(tablename(), key_json(), json_parameters()) -> json_reply().
+
+get(Name, Keys, Parameters)
+  when is_binary(Name),
+       is_list(Keys) ->
+    JSON = [{<<"TableName">>, Name}] 
+	++ Keys
+	++ Parameters,
     request(?TG_GET_ITEM, JSON).
 
 %%% Fetch all item attributes from table using a condition.
