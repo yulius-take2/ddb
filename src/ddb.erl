@@ -33,7 +33,8 @@
          cond_update/4, cond_update/5,
          cond_delete/3, cond_delete/4,
          now/0, find/3, find/4,
-	 q/3]).
+	 q/3, q/4,
+	 range_key_condition/1]).
 
 -define(DDB_DOMAIN, "dynamodb.us-east-1.amazonaws.com").
 -define(DDB_ENDPOINT, "http://" ++ ?DDB_DOMAIN ++ "/").
@@ -81,7 +82,8 @@
 -type update_attr() :: {binary(), binary(), type(), 'put' | 'add'} | {binary(), 'delete'}.
 -type returns() :: 'none' | 'all_old' | 'updated_old' | 'all_new' | 'updated_new'.
 -type update_cond() :: {'does_not_exist', binary()} | {'exists', binary(), binary(), type()}.
--type json_parameters() :: [{binary(), term()}].
+-type json_parameter() :: {binary(), term()}.
+-type json_parameters() :: [json_parameter()].
 
 %%% Set temporary credentials, use ddb_iam:token/1 to fetch from AWS.
  
@@ -312,11 +314,23 @@ find(Name, HashKey, RangeKeyCond) ->
 
 -spec find(tablename(), key_value(), find_cond(), json() | 'none') -> json_reply().
 
-find(Name, {HashKeyValue, HashKeyType}, {Condition, RangeKeyType, RangeKeyValues}, StartKey)
+find(Name, {HashKeyValue, HashKeyType}, RangeKeyCond, StartKey)
   when is_binary(Name),
        is_binary(HashKeyValue),
-       is_atom(HashKeyType),
-       is_atom(Condition),
+       is_atom(HashKeyType) ->
+    JSON = [{<<"TableName">>, Name},
+            {<<"HashKeyValue">>, 
+             [{type(HashKeyType), HashKeyValue}]},
+	    range_key_condition(RangeKeyCond)]
+	++ start_key(StartKey),
+
+    request(?TG_QUERY, JSON).
+
+%%% Create a range key condition parameter
+
+-spec range_key_condition(find_cond()) -> json_parameter().
+range_key_condition({Condition, RangeKeyType, RangeKeyValues})
+  when is_atom(Condition),
        is_atom(RangeKeyType),
        is_list(RangeKeyValues) ->
     {Op, Values} = case Condition of
@@ -327,35 +341,40 @@ find(Name, {HashKeyValue, HashKeyType}, {Condition, RangeKeyType, RangeKeyValues
                        'equal' ->
                            {<<"EQ">>, [[{type(RangeKeyType), hd(RangeKeyValues)}]]}
                    end,
-    JSON = [{<<"TableName">>, Name},
-            {<<"HashKeyValue">>, 
-             [{type(HashKeyType), HashKeyValue}]},
-            {<<"RangeKeyCondition">>, 
-             [{<<"AttributeValueList">>, Values},
-              {<<"ComparisonOperator">>, Op}]}],
-    JSON1 = case StartKey of 
-                'none' -> JSON;
-                _      -> [{<<"ExclusiveStartKey">>, StartKey}|JSON]
-            end,
-    request(?TG_QUERY, JSON1).
+    {<<"RangeKeyCondition">>, [{<<"AttributeValueList">>, Values},
+			       {<<"ComparisonOperator">>, Op}]}.
 
 %%% Query a table
 
 -spec q(tablename(), key_value(), json_parameters()) -> json_reply().
 
-q(Name, {HashKeyValue, HashKeyType}, Parameters)
+q(Name, HashKey, Parameters) ->
+    q(Name, HashKey, Parameters, 'none').
+
+%% Query a table with pagination
+
+-spec q(tablename(), key_value(), json_parameters(), json() | 'none') -> json_reply().
+
+q(Name, {HashKeyValue, HashKeyType}, Parameters, StartKey)
   when is_binary(Name),
        is_binary(HashKeyValue),
        is_atom(HashKeyType),
        is_list(Parameters) ->
     JSON = [{<<"TableName">>, Name},
             {<<"HashKeyValue">>, [{type(HashKeyType), HashKeyValue}]}]
-	++ Parameters,
+	++ Parameters
+	++ start_key(StartKey),
     request(?TG_QUERY, JSON).
 
 %%%
 %%% Helper functions
 %%%
+
+-spec start_key(json() | 'none') -> json_parameters().
+start_key('none') -> 
+    [];
+start_key(StartKey) -> 
+    [{<<"ExclusiveStartKey">>, StartKey}].
 
 -spec format_put_attrs([put_attr()]) -> json().
 
