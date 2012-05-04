@@ -29,9 +29,11 @@
          create_table/4, describe_table/1, remove_table/1,
          get/2, put/2, update/3, update/4, 
          delete/2, delete/3, 
+	 cond_put/3,
          cond_update/4, cond_update/5,
          cond_delete/3, cond_delete/4,
-         now/0, find/3, find/4]).
+         now/0, find/3, find/4,
+	 q/3]).
 
 -define(DDB_DOMAIN, "dynamodb.us-east-1.amazonaws.com").
 -define(DDB_ENDPOINT, "http://" ++ ?DDB_DOMAIN ++ "/").
@@ -79,6 +81,7 @@
 -type update_attr() :: {binary(), binary(), type(), 'put' | 'add'} | {binary(), 'delete'}.
 -type returns() :: 'none' | 'all_old' | 'updated_old' | 'all_new' | 'updated_new'.
 -type update_cond() :: {'does_not_exist', binary()} | {'exists', binary(), binary(), type()}.
+-type json_parameters() :: [{binary(), term()}].
 
 %%% Set temporary credentials, use ddb_iam:token/1 to fetch from AWS.
  
@@ -174,6 +177,18 @@ put(Name, Attributes)
   when is_binary(Name) ->
     JSON = [{<<"TableName">>, Name},
             {<<"Item">>, format_put_attrs(Attributes)}],
+    request(?TG_PUT_ITEM, JSON).
+
+%%% Conditionally put item attributes into table
+
+-spec cond_put(tablename(), [put_attr()], update_cond()) -> json_reply().
+
+cond_put(Name, Attributes, Condition)
+  when is_binary(Name),
+       is_list(Attributes) ->
+    JSON = [{<<"TableName">>, Name},
+            {<<"Item">>, format_put_attrs(Attributes)}]
+	++ format_update_cond(Condition),
     request(?TG_PUT_ITEM, JSON).
 
 %%% Create a key value, either hash or hash and range.
@@ -324,6 +339,20 @@ find(Name, {HashKeyValue, HashKeyType}, {Condition, RangeKeyType, RangeKeyValues
             end,
     request(?TG_QUERY, JSON1).
 
+%%% Query a table
+
+-spec q(tablename(), key_value(), json_parameters()) -> json_reply().
+
+q(Name, {HashKeyValue, HashKeyType}, Parameters)
+  when is_binary(Name),
+       is_binary(HashKeyValue),
+       is_atom(HashKeyType),
+       is_list(Parameters) ->
+    JSON = [{<<"TableName">>, Name},
+            {<<"HashKeyValue">>, [{type(HashKeyType), HashKeyValue}]}]
+	++ Parameters,
+    request(?TG_QUERY, JSON).
+
 %%%
 %%% Helper functions
 %%%
@@ -378,6 +407,7 @@ update_action('delete') -> <<"DELETE">>.
 
 request(Target, JSON) ->
     Body = jsx:term_to_json(JSON),
+    ok = lager:debug("REQUEST BODY ~n~p", [Body]),
     Headers = headers(Target, Body),
     Opts = [{'response_format', 'binary'}],
     F = fun() -> ibrowse:send_req(?DDB_ENDPOINT, [{'Content-type', ?CONTENT_TYPE} | Headers], 'post', Body, Opts) end,
