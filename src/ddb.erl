@@ -37,7 +37,7 @@
 	 range_key_condition/1]).
 
 -define(DDB_DOMAIN, "dynamodb.us-east-1.amazonaws.com").
--define(DDB_ENDPOINT, "http://" ++ ?DDB_DOMAIN ++ "/").
+-define(DDB_ENDPOINT, "https://" ++ ?DDB_DOMAIN ++ "/").
 -define(DDB_AMZ_PREFIX, "x-amz-").
 
 -define(SIGNATURE_METHOD, "HmacSHA1").
