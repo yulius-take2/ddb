@@ -5,6 +5,7 @@ Authenticating
     inets:start().
     ssl:start().
     lager:start().
+    application:start(ibrowse).
     ddb_iam:credentials("access key", "secret").
     {'ok', Key, Secret, Token} = ddb_iam:token(129600).
     ddb:credentials(Key, Secret, Token).
@@ -56,13 +57,13 @@ Changing value (and type) of one field while deleting another
 Adding to a string set field and returning pre-update values of updated fields
 
     ddb:update(<<"foo">>, ddb:key_value(<<"hash key value">>, 'string'), 
-                          [{<<"field2">>, [<<"1">>, <<"2">>], 'string_set', 'add'}],
+                          [{<<"field2">>, [<<"1">>, <<"2">>], ['string'], 'add'}],
                           'updated_old').
 
 Deleting an item from a string set field and returning the values of all fields before the update
 
     ddb:update(<<"foo">>, ddb:key_value(<<"hash key value">>, 'string'), 
-                          [{<<"field2">>, [<<"1">>], 'string_set', 'delete'}],
+                          [{<<"field2">>, [<<"1">>], ['string'], 'delete'}],
                           'all_old').
 
 Update field1 only when field2 does not exist
@@ -74,8 +75,8 @@ Update field1 only when field2 does not exist
 Update field1 only when field2 exists and has a numerical value of 1
 
     ddb:cond_update(<<"foo">>, ddb:key_value(<<"hash key value">>, 'string'), 
-                               [{<<"field1">>, <<"1">>, 'number', 'put'}],
-                               {'exists', <<"field2">>, <<"1">>, 'number'}).
+                               [{<<"field1">>, <<"2">>, 'number', 'put'}],
+                               {'exists', <<"field2">>, [<<"2">>], ['string']}).
 
 See `src/ddb.erl` for the rest of the API.
 
