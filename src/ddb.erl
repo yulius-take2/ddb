@@ -152,7 +152,7 @@ create_table(Name, Keys, ReadsPerSec, WritesPerSec)
 
 tables() ->
     {'ok', JSON} = request(?TG_LIST_TABLES, [{}]),
-    [{<<"TableNames">>, {<<"array">>, Tables}}] = JSON,
+    [{<<"TableNames">>, Tables}] = JSON,
     {'ok', Tables}.
 
 %%% Describe table.
