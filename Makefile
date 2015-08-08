@@ -28,8 +28,8 @@ ct: deps compile
 test: eunit ct
 
 ## dialyzer
-PLT_FILE = ~/boss_db.plt
-PLT_APPS ?= kernel stdlib erts deps/*
+PLT_FILE = ~/ddb.plt
+PLT_APPS ?= kernel stdlib erts crypto intes xmerl deps/*
 DIALYZER_OPTS ?= -Werror_handling -Wrace_conditions -Wunmatched_returns \
 		-Wunderspecs --verbose --fullpath -n
 
