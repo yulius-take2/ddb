@@ -29,7 +29,7 @@ test: eunit ct
 
 ## dialyzer
 PLT_FILE = ~/ddb.plt
-PLT_APPS ?= kernel stdlib erts compiler crypto inets ssl public_key \ 
+PLT_APPS ?= kernel stdlib erts compiler crypto inets ssl public_key \
 		xmerl deps/*
 DIALYZER_OPTS ?= -Werror_handling -Wrace_conditions -Wunmatched_returns \
 		-Wunderspecs --verbose --fullpath -n
