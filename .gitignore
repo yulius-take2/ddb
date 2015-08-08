@@ -5,3 +5,5 @@ deps/
 app.config
 .eunit
 log*
+/.project
+/.settings/
