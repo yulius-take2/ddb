@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/ErlyORM/ddb.svg?branch=master)](https://travis-ci.org/ErlyORM/ddb)
+
 # Accessing Amazon DynamoDB
 
 Authenticating
