@@ -27,24 +27,25 @@ ct: deps compile
 
 test: eunit ct
 
+## dialyzer
+PLT_FILE = ~/boss_db.plt
+PLT_APPS ?= kernel stdlib erts deps/*
+DIALYZER_OPTS ?= -Werror_handling -Wrace_conditions -Wunmatched_returns \
+		-Wunderspecs --verbose --fullpath -n
+
+.PHONY: dialyze
+dialyze: all
+	@[ -f $(PLT_FILE) ] || $(MAKE) plt
+	@dialyzer --plt $(PLT_FILE) $(DIALYZER_OPTS) ebin || [ $$? -eq 2 ];
+
+## In case you are missing a plt file for dialyzer,
+## you can run/adapt this command
+.PHONY: plt
 plt:
-	@$(DIALYZER) --build_plt --output_plt .backend-api.plt \
-		-pa deps/lager/ebin \
-		-pa deps/mochiweb/ebin \
-		-c deps/mochiweb/ebin \
-		--apps kernel stdlib sasl inets crypto \
-		public_key ssl mnesia runtime_tools erts \
-		compiler tools syntax_tools xmerl hipe webtool
-
-analyze: compile
-	@$(DIALYZER) --no_check_plt \
-		     -c ebin \
-		--plt .ddb.plt \
-		-pa deps/lager/ebin \
-		-pa deps/mochiweb/ebin \
-		-Werror_handling \
-		-Wunmatched_returns #-Wunderspecs
-
+	@echo "Building PLT, may take a few minutes"
+	@dialyzer --build_plt --output_plt $(PLT_FILE) --apps \
+		$(PLT_APPS) || [ $$? -eq 2 ];
+		
 docs:
 	@$(REBAR) doc skip_deps=true
 
