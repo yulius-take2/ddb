@@ -76,11 +76,11 @@ retry(F, Max, N, H)
 			    {'error', H(Body)}
 		    end
 	    end;
-	{'ok', Code, _, Body} ->
-	    %%ok = lager:warning("Unexpected response (~s) ~p, retrying...", [Code, Body]),
+	{'ok', _Code, _, _Body} ->
+	    %%ok = lager:warning("Unexpected response (~s) ~p, retrying...", [_Code, _Body]),
 	    retry(F, Max, N + 1, H);
-	{'error', Error} ->
-	    %%ok = lager:debug("Got ~p retrying...", [Error]),
+	{'error', _Error} ->
+	    %%ok = lager:debug("Got ~p retrying...", [_Error]),
 	    retry(F, Max, N + 1, H)
     end.
 
