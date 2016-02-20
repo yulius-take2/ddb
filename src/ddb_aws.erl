@@ -56,7 +56,7 @@ retry(F, Max, N, H)
 		    %%ok = lager:error("Got client error (~s) ~p, aborting...", [Code, Body]),
 		    {'error', H(Body)};
 		true ->
-		    JSON = jsx:json_to_term(Body),
+		    JSON = jsx:decode(Body),
 		    case proplists:get_value(<<"__type">>, JSON) of
 			<<"com.amazonaws.dynamodb.v20111205#ProvisionedThroughputExceededException">> ->
 			    %%ok = lager:warning("Got client error (~s) ~p, retrying...", [Code, Body]),
