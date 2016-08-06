@@ -11,6 +11,7 @@
                   stdlib,
                   crypto,
                   ssl,
+                  jsx,
                   ibrowse
                  ]},
   {env, []}
