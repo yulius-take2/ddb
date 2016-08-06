@@ -7,3 +7,4 @@ app.config
 log*
 /.project
 /.settings/
+.idea
