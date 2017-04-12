@@ -1,8 +1,8 @@
 IsRebar3 = erlang:function_exported(rebar3, main, 1),
 
 Rebar2Deps = [
-        {jsx, ".*", {git, "https://github.com/talentdeficit/jsx.git", {tag, "ef9818b"}}},
-        {ibrowse, ".*", {git, "https://github.com/cmullaparthi/ibrowse.git", {tag, "v4.1.2"}}}
+        {jsx, ".*", {git, "https://github.com/talentdeficit/jsx.git", {tag, "v2.8.2"}}},
+        {ibrowse, ".*", {git, "https://github.com/cmullaparthi/ibrowse.git", {tag, "v4.4.0"}}}
        ],
 case IsRebar3 of
     true ->
