@@ -3,7 +3,7 @@
 
 {application, ddb, [
     {description, "AWS DynamoDB client"},
-    {vsn, "0.1.4"},
+    {vsn, "0.1.7"},
     {registered, [ddb_sup]},
     {applications, [
         kernel,
