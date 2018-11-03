@@ -1,18 +1,21 @@
 %% -*- mode: erlang;erlang-indent-level: 4;indent-tabs-mode: nil -*-
 %% ex: ts=4 sw=4 ft=erlang et
 
-{application, ddb,
- [
-  {description, "AWS DynamoDB client"},
-  {vsn, "0.1.3"},
-  {registered, [ddb_sup]},
-  {applications, [
-                  kernel,
-                  stdlib,
-                  crypto,
-                  ssl,
-                  jsx,
-                  ibrowse
-                 ]},
-  {env, []}
- ]}.
+{application, ddb, [
+    {description, "AWS DynamoDB client"},
+    {vsn, "0.1.4"},
+    {registered, [ddb_sup]},
+    {applications, [
+        kernel,
+        stdlib,
+        crypto,
+        ssl,
+        jsx,
+        ibrowse
+    ]},
+    {env, []},
+    {maintainers, ["ChicagoBoss Team"]},
+    {links, [
+        {"Github", "https://github.com/ErlyORM/ddb"}
+    ]}
+]}.

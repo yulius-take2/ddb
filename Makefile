@@ -1,57 +1,35 @@
-REBAR = ./rebar
-DIALYZER = dialyzer
-TOUCH = touch
+ERL = erl
+GIT = git
+REBAR = rebar3
+REBAR_VER = 3.6.2
 
-.PHONY: all deps compile escripize clean doc eunit ct test \
-	run plt analyze get-deps compile-deps
+all: compile
 
-all: deps compile
+compile:
+	@$(REBAR) compile
 
-deps: get-deps compile-deps
-
-compile: 
-	@$(REBAR) compile skip_deps=true
-
-escriptize: 
-	@$(REBAR) escriptize
-
-clean: 
-	@$(REBAR) clean
-	@rm -f test/*.beam erl_crash.dump ./deps/.compile-deps 
-
-eunit: deps compile 
-	@$(REBAR) skip_deps=true eunit
-
-ct: deps compile 
-	@$(REBAR) skip_deps=true ct 
-
-test: eunit ct
-
-## dialyzer
-PLT_FILE = ~/ddb.plt
-PLT_APPS ?= kernel stdlib erts compiler crypto inets ssl public_key \
-		xmerl deps/*
-DIALYZER_OPTS ?= -Werror_handling -Wrace_conditions -Wunmatched_returns \
-		-Wunderspecs --verbose --fullpath -n
-
-.PHONY: dialyze
-dialyze: all
-	@[ -f $(PLT_FILE) ] || $(MAKE) plt
-	@dialyzer --plt $(PLT_FILE) $(DIALYZER_OPTS) ebin || [ $$? -eq 2 ];
-
-## In case you are missing a plt file for dialyzer,
-## you can run/adapt this command
-.PHONY: plt
-plt:
-	@echo "Building PLT, may take a few minutes"
-	@dialyzer --build_plt --output_plt $(PLT_FILE) --apps \
-		$(PLT_APPS) || [ $$? -eq 2 ];
-		
-docs:
-	@$(REBAR) doc skip_deps=true
+rebar_src:
+	@rm -rf $(PWD)/rebar_src
+	@$(GIT) clone https://github.com/erlang/rebar3.git rebar_src
+	@$(GIT) -C rebar_src checkout tags/$(REBAR_VER)
+	@cd $(PWD)/rebar_src/; ./bootstrap
+	@cp $(PWD)/rebar_src/rebar3 $(PWD)
+	@rm -rf $(PWD)/rebar_src
 
 get-deps:
-	@$(REBAR) get-deps
+	@$(REBAR) upgrade
 
-compile-deps:
+deps:
 	@$(REBAR) compile
+
+.PHONY: dialyze
+dialyze:
+	@$(REBAR) dialyzer || [ $$? -eq 1 ];
+
+clean:
+	@$(REBAR) clean
+	rm -fv erl_crash.dump
+
+.PHONY: test
+test:
+	@$(REBAR) eunit
