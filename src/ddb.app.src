@@ -13,7 +13,7 @@
         jsx,
         ibrowse
     ]},
-    {env, []}
+    {env, []},
     {maintainers, ["ChicagoBoss Team"]},
     {links, [
         {"Github", "https://github.com/ErlyORM/ddb"}
