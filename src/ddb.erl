@@ -37,8 +37,8 @@
          scan/2, scan/3,
          range_key_condition/1]).
 
--define(DDB_DOMAIN, "dynamodb.us-east-1.amazonaws.com").
--define(DDB_ENDPOINT, "https://" ++ get_ddb_domain() ++ "/").
+-define(DDB_DEFAULT_ENDPOINT, "dynamodb.us-east-1.amazonaws.com").
+-define(DDB_ENDPOINT, get_ddb_endpoint()).
 -define(DDB_AMZ_PREFIX, "x-amz-").
 
 -define(SIGNATURE_METHOD, "HmacSHA1").
@@ -98,8 +98,8 @@ credentials(AccessKeyId, SecretAccessKey, SessionToken) ->
 
 -spec credentials(string(), string(), string(), string()) -> 'ok'.
 
-credentials(AccessKeyId, SecretAccessKey, SessionToken, DDBDomain) ->
-    'ok' = application:set_env('ddb', 'ddb_domain', DDBDomain),
+credentials(AccessKeyId, SecretAccessKey, SessionToken, DDBEndpoint) ->
+    'ok' = application:set_env('ddb', 'ddb_endpoint', DDBEndpoint),
     credentials(AccessKeyId, SecretAccessKey, SessionToken).
 
 %%% Retrieve stored credentials.
@@ -412,11 +412,17 @@ scan(Name, Parameters, StartKey)
 -spec get_ddb_domain() -> string().
 
 get_ddb_domain() ->
-    case application:get_env('ddb', 'ddb_domain') of
+    Result = uri_string:parse(get_ddb_endpoint()),
+    maps:get(host,Result).
+
+-spec get_ddb_endpoint() -> string().
+
+get_ddb_endpoint() ->
+    case application:get_env('ddb', 'ddb_endpoint') of
         {'ok', DDBDomain} ->
             DDBDomain;
         _ ->
-            ?DDB_DOMAIN
+            ?DDB_DEFAULT_ENDPOINT
     end.
 
 -spec start_key(json() | 'none') -> json_parameters().
@@ -512,8 +518,8 @@ authorization(AccessKeyId, SecretAccessKey, Headers, Body) ->
 signature(SecretAccessKey, Headers, Body) ->
     StringToSign = lists:flatten(["POST", $\n, "/", $\n, $\n, canonical(Headers), $\n, Body]),
     BytesToSign = crypto:hash(sha, StringToSign),
-    base64:encode_to_string(binary_to_list(crypto:hmac(sha, SecretAccessKey, BytesToSign))).
-
+    base64:encode_to_string(binary_to_list(crypto:mac(hmac, sha, SecretAccessKey, BytesToSign))).
+ 
 -spec canonical(proplists:proplist()) -> [_].
 
 canonical(Headers) ->

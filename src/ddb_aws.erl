@@ -90,7 +90,7 @@ backoff(0) -> 'ok';
 backoff(Attempts) 
   when is_integer(Attempts) ->
     %% attempt exponential backoff
-    Delay = round(crypto:rand_uniform(1, 101) * math:pow(4, Attempts)),
+    Delay = round(rand:uniform(100) * math:pow(4, Attempts)),
     %%ok = lager:debug("Waiting ~bms before retrying", [Delay]),
     timer:sleep(Delay).
 
