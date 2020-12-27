@@ -90,12 +90,55 @@ request(Action, Endpoint, Duration) ->
             {"SignatureVersion", "2"},
             {"Timestamp", ddb_aws:timestamp()},
             {"Version", ?IAM_AWS_VERSION}],
-    CanonicalString = http_uri:encode(lists:sort(Args)),
+    CanonicalString = urlencode(lists:sort(Args)),
     #url{host=Host, path=Path} = ibrowse_lib:parse_url(Endpoint),
     S = ["POST", $\n, Host, $\n, Path, $\n, CanonicalString],
     Signature = base64:encode_to_string(crypto:mac(hmac, sha, SecretAccessKey, S)),
     Args1 = [{"Signature", Signature}|Args],
-    Body = iolist_to_binary(http_uri:encode(lists:sort(Args1))), 
+    Body = iolist_to_binary(urlencode(lists:sort(Args1))), 
     F = fun() -> ibrowse:send_req(Endpoint, [{'Content-type', ?MIME_TYPE}], 'post', Body, []) end,
     H = fun ddb_xml:parse/1,
     ddb_aws:retry(F, ?IAM_MAX_RETRIES, H).
+
+
+% urlencode utils
+-define(PERCENT, 37).  % $\%
+-define(FULLSTOP, 46). % $\.
+-define(QS_SAFE(C), ((C >= $a andalso C =< $z) orelse
+                     (C >= $A andalso C =< $Z) orelse
+                     (C >= $0 andalso C =< $9) orelse
+                     (C =:= ?FULLSTOP orelse C =:= $- orelse C =:= $~ orelse
+                      C =:= $_))).
+
+hexdigit(C) when C < 10 -> $0 + C;
+hexdigit(C) when C < 16 -> $A + (C - 10).
+
+quote_plus([], Acc) ->
+    lists:reverse(Acc);
+quote_plus([C | Rest], Acc) when ?QS_SAFE(C) ->
+    quote_plus(Rest, [C | Acc]);
+quote_plus([$\s | Rest], Acc) ->
+    quote_plus(Rest, [$+ | Acc]);
+quote_plus([C | Rest], Acc) ->
+    <<Hi:4, Lo:4>> = <<C>>,
+    quote_plus(Rest, [hexdigit(Lo), hexdigit(Hi), ?PERCENT | Acc]).
+
+%% @spec quote_plus(atom() | integer() | float() | string() | binary()) -> string()
+%% @doc URL safe encoding of the given term.
+quote_plus(Atom) when is_atom(Atom) ->
+    quote_plus(atom_to_list(Atom));
+quote_plus(Int) when is_integer(Int) ->
+    quote_plus(integer_to_list(Int));
+quote_plus(Binary) when is_binary(Binary) ->
+    quote_plus(binary_to_list(Binary));
+quote_plus(Float) when is_float(Float) ->
+    quote_plus(mochinum:digits(Float));
+quote_plus(String) ->
+    quote_plus(String, []).
+
+urlencode(Props) ->
+    Pairs = lists:foldr(
+              fun ({K, V}, Acc) ->
+                      [quote_plus(K) ++ "=" ++ quote_plus(V) | Acc]
+              end, [], Props),
+    string:join(Pairs, "&").
