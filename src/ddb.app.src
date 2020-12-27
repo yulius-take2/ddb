@@ -11,7 +11,9 @@
         crypto,
         ssl,
         jsx,
-        ibrowse
+        ibrowse,
+        edatetime,
+        base16
     ]},
     {env, []},
     {maintainers, ["ChicagoBoss Team"]},
