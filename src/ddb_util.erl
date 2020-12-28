@@ -30,8 +30,7 @@
          to_integer/1,
          separate/2,
          bin2hexstr/1,
-         rfc1123_date/0, rfc1123_date/1,
-         load_credentitals/0
+         rfc1123_date/0, rfc1123_date/1
         ]).
 
 -define(GREGORIAN_EPOCH_DIFF, 62167219200).
@@ -120,14 +119,3 @@ bin2hexstr(List) when is_list(List) ->
         io_lib:format("~2.16.0b", [Base10])
     end,
     lists:flatten(lists:map(Hex, List)).
-
--spec load_credentitals() -> {ok, string(), string(), string()}.
-load_credentitals() ->
-    HomePath = os:getenv("HOME","~"),
-    AwsCredentialsFile = string:join([HomePath, "/.aws/credentials"], ""),
-    ok = econfig:register_config(credentials, [AwsCredentialsFile]),
-    ok = econfig:subscribe(credentials),
-    AccessKey = econfig:get_value(credentials, "default", "aws_access_key_id", ""),
-    Secret = econfig:get_value(credentials, "default", "aws_secret_access_key", ""),
-    Region = econfig:get_value(credentials, "default", "region", "us-west-1"),
-    {ok, AccessKey, Secret, Region}.

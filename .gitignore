@@ -12,3 +12,4 @@ rebar.lock
 .project
 .idea
 TEST-*
+.vscode

@@ -23,11 +23,11 @@
 
 -module(ddb).
 
--export([credentials/4, credentials/5, tables/0,
-         attr_type/2,
+-export([credentials/3, credentials/4, load_credentials/0,
+         tables/0,
          key_type/2, key_type/4,
          key_value/2, key_value/4,
-         create_table/5, describe_table/1, remove_table/1,
+         create_table/4, describe_table/1, remove_table/1,
          get/2, get/3, put/2, update/3, update/4,
          delete/2, delete/3,
          cond_put/3,
@@ -74,35 +74,45 @@
 
 %%% Set temporary credentials, use ddb_iam:token/1 to fetch from AWS.
 
--spec credentials(string(), string(), string(), string()) -> 'ok'.
+-spec credentials(string(), string(), string()) -> 'ok'.
 
-credentials(AccessKeyId, SecretAccessKey, Region, SessionToken) ->
+credentials(AccessKeyId, SecretAccessKey, Region) ->
     'ok' = application:set_env('ddb', 'access_key_id', AccessKeyId),
     'ok' = application:set_env('ddb', 'secret_access_key', SecretAccessKey),
-    'ok' = application:set_env('ddb', 'sessiontoken', SessionToken),
     'ok' = application:set_env('ddb', 'region', Region).
 
--spec credentials(string(), string(), string(), string(), string()) -> 'ok'.
+-spec credentials(string(), string(), string(), string()) -> 'ok'.
 
-credentials(AccessKeyId, SecretAccessKey, Region, SessionToken, DDBEndpoint) ->
+credentials(AccessKeyId, SecretAccessKey, Region, DDBEndpoint) ->
     'ok' = application:set_env('ddb', 'ddb_endpoint', DDBEndpoint),
-    credentials(AccessKeyId, SecretAccessKey, Region, SessionToken).
+    credentials(AccessKeyId, SecretAccessKey, Region).
+
+-spec load_credentials() -> {ok, string(), string(), string()}.
+
+load_credentials() ->
+    HomePath = os:getenv("HOME","~"),
+    AwsCredentialsFile = string:join([HomePath, "/.aws/credentials"], ""),
+    ok = econfig:register_config(credentials, [AwsCredentialsFile]),
+    ok = econfig:subscribe(credentials),
+    AccessKey = econfig:get_value(credentials, "default", "aws_access_key_id", ""),
+    Secret = econfig:get_value(credentials, "default", "aws_secret_access_key", ""),
+    Region = econfig:get_value(credentials, "default", "region", "us-west-1"),
+    {ok, AccessKey, Secret, Region}.
+
 
 %%% Create a key type, either hash or hash and range.
-
-attr_type(KeyName, KeyType)
-    when is_binary(KeyName),
-       is_atom(KeyType) ->
-      [{<<"AttributeName">>, KeyName},
-       {<<"AttributeType">>, type(KeyType)}].
 
 -spec key_type(binary(), type()) -> json().
 
 key_type(HashKey, HashKeyType)
   when is_binary(HashKey),
-       is_binary(HashKeyType) ->
-      [{<<"AttributeName">>, HashKey},
-       {<<"KeyType">>, HashKeyType}].
+       is_atom(HashKeyType) ->
+    [{<<"KeySchema">>, [
+        [{<<"AttributeName">>, HashKey}, {<<"KeyType">>, <<"HASH">>}]
+    ]},    
+    {<<"AttributeDefinitions">>, [
+        [{<<"AttributeName">>, HashKey}, {<<"AttributeType">>, type(HashKeyType)}]
+    ]}].
 
 -spec key_type(binary(), type(), binary(), type()) -> json().
 
@@ -111,25 +121,27 @@ key_type(HashKey, HashKeyType, RangeKey, RangeKeyType)
        is_atom(HashKeyType),
        is_binary(RangeKey),
        is_atom(RangeKeyType) ->
-    [{<<"HashKeyElement">>,
-      [{<<"AttributeName">>, HashKey},
-       {<<"AttributeType">>, type(HashKeyType)}]},
-     {<<"RangeKeyElement">>,
-      [{<<"AttributeName">>, RangeKey},
-       {<<"AttributeType">>, type(RangeKeyType)}]}].
+    [{<<"KeySchema">>, [
+        [{<<"AttributeName">>, HashKey}, {<<"KeyType">>, <<"HASH">>}],
+        [{<<"AttributeName">>, RangeKey}, {<<"KeyType">>, <<"RANGE">>}]
+    ]},    
+    {<<"AttributeDefinitions">>, [
+        [{<<"AttributeName">>, HashKey}, {<<"AttributeType">>, type(HashKeyType)}],
+        [{<<"AttributeName">>, RangeKey}, {<<"AttributeType">>, type(RangeKeyType)}]
+    ]}].
 
 %%% Create table. Use key_type/2 or key_type/4 as key.
 
--spec create_table(tablename(), key_json(), key_json(), pos_integer(), pos_integer()) -> json_reply().
+-spec create_table(tablename(), key_json(), pos_integer(), pos_integer()) -> json_reply().
 
-create_table(Name, Keys, AttrDefs, ReadsPerSec, WritesPerSec)
+create_table(Name, Keys, ReadsPerSec, WritesPerSec)
   when is_binary(Name),
        is_list(Keys),
        is_integer(ReadsPerSec),
        is_integer(WritesPerSec) ->
     JSON = [{<<"TableName">>, Name},
-            {<<"KeySchema">>, Keys},
-            {<<"AttributeDefinitions">>, AttrDefs},
+            {<<"KeySchema">>, proplists:get_value(<<"KeySchema">>, Keys)},
+            {<<"AttributeDefinitions">>, proplists:get_value(<<"AttributeDefinitions">>, Keys)},
             {<<"ProvisionedThroughput">>, [{<<"ReadCapacityUnits">>, ReadsPerSec},
                                            {<<"WriteCapacityUnits">>, WritesPerSec}]}],
     request(?TG_CREATE_TABLE, JSON).
@@ -467,6 +479,7 @@ request(Target, JSON) ->
     Signed = [{<<"Authorization">>, authorization(Headers, Body, Now)}
               | Headers],
     Opts = [{'response_format', 'binary'}],
+    %io:format("URL=~p Signed=~p, Body=~p, Opts=~p", [URL, Signed, Body, Opts]),
     F = fun() -> ibrowse:send_req(URL, Signed, 'post', Body, Opts) end,
     case ddb_aws:retry(F, ?MAX_RETRIES, fun jsx:decode/1) of
         {'error', 'expired_token'} ->

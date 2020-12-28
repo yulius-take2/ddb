@@ -4,13 +4,10 @@
 
 Authenticating
 
-    inets:start().
-    ssl:start().
-    lager:start().
     application:start(ibrowse).
-    ddb_iam:credentials("access key", "secret").
-    {'ok', Key, Secret, Token} = ddb_iam:token(129600).
-    ddb:credentials(Key, Secret, Token).
+    % read from ~/.aws/credentials
+    {ok, Key, Secret, Region} = ddb_util:load_credentitals(), 
+    ddb:credentials(Key, Secret, Region, Endpoint).
 
 
 Creating a table with a hash key
